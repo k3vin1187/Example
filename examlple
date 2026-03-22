@@ -1,0 +1,122 @@
+// ---------- PIN SETUP ----------
+const int BLED = 8;     // Blue  (PWM)
+const int GLED = 9;    // Green (PWM)
+const int RLED = 10;    // Red   (PWM)
+
+const int COLOR_BUTTON = 2;   // Button 1: cycle colors
+const int BLINK_BUTTON = 3;   // Button 2: cycle blink speeds
+
+// ---------- STATE VARIABLES ----------
+int colorMode = 0;   // 0–7
+int blinkMode = 0;   // 0–5 (0 = no blink)
+
+unsigned long lastBlinkTime = 0;
+bool ledOn = true;
+
+// Button state tracking
+bool lastColorBtn = HIGH;
+bool lastBlinkBtn = HIGH;
+
+// Blink delay table
+int blinkDelays[6] = {0, 500, 1000, 1500, 2000, 2500};
+
+// ---------- SETUP ----------
+void setup() {
+  pinMode(RLED, OUTPUT);
+  pinMode(GLED, OUTPUT);
+  pinMode(BLED, OUTPUT);
+
+  pinMode(COLOR_BUTTON, INPUT_PULLUP);
+  pinMode(BLINK_BUTTON, INPUT_PULLUP);
+}
+
+// ---------- COLOR OUTPUT ----------
+void setColor(int mode) {
+  switch (mode) {
+
+    case 0: // OFF
+      analogWrite(RLED, 0);
+      analogWrite(GLED, 0);
+      analogWrite(BLED, 0);
+      break;
+
+    case 1: // RED
+      analogWrite(RLED, 255);
+      analogWrite(GLED, 0);
+      analogWrite(BLED, 0);
+      break;
+
+    case 2: // GREEN
+      analogWrite(RLED, 0);
+      analogWrite(GLED, 255);
+      analogWrite(BLED, 0);
+      break;
+
+    case 3: // BLUE
+      analogWrite(RLED, 0);
+      analogWrite(GLED, 0);
+      analogWrite(BLED, 255);
+      break;
+
+    case 4: // TEAL (Green + Blue)
+      analogWrite(RLED, 0);
+      analogWrite(GLED, 255);
+      analogWrite(BLED, 255);
+      break;
+
+    case 5: // ORANGE (Red + a little Green)
+      analogWrite(RLED, 255);
+      analogWrite(GLED, 100);
+      analogWrite(BLED, 0);
+      break;
+
+    case 6: // PURPLE (Red + Blue)
+      analogWrite(RLED, 180);
+      analogWrite(GLED, 0);
+      analogWrite(BLED, 255);
+      break;
+
+    case 7: // WHITE (R + G + B)
+      analogWrite(RLED, 255);
+      analogWrite(GLED, 255);
+      analogWrite(BLED, 255);
+      break;
+  }
+}
+
+// ---------- LOOP ----------
+void loop() {
+
+  // ----- BUTTON 1: COLOR MODE -----
+  bool colorBtn = digitalRead(COLOR_BUTTON);
+  if (lastColorBtn == HIGH && colorBtn == LOW) {
+    colorMode++;
+    if (colorMode > 7) colorMode = 0;
+  }
+  lastColorBtn = colorBtn;
+
+  // ----- BUTTON 2: BLINK MODE -----
+  bool blinkBtn = digitalRead(BLINK_BUTTON);
+  if (lastBlinkBtn == HIGH && blinkBtn == LOW) {
+    blinkMode++;
+    if (blinkMode > 5) blinkMode = 0;
+  }
+  lastBlinkBtn = blinkBtn;
+
+  // ----- BLINK HANDLING -----
+  int delayTime = blinkDelays[blinkMode];
+
+  if (delayTime == 0) {
+    // No blinking → LED stays ON
+    setColor(colorMode);
+  } else {
+    unsigned long now = millis();
+    if (now - lastBlinkTime >= delayTime) {
+      ledOn = !ledOn;
+      lastBlinkTime = now;
+    }
+
+    if (ledOn) setColor(colorMode);
+    else setColor(0); // OFF during blink
+  }
+}
